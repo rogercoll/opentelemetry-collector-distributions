@@ -1,0 +1,20 @@
+extensions:
+
+receivers:
+  activewindow:
+    providers:
+      x11:
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [activewindow]
+      processors: [batch]
+      exporters: [debug]
