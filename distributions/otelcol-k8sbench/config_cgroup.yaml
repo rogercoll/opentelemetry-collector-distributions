@@ -1,0 +1,45 @@
+extensions:
+  cgroupruntime:
+     gomaxprocs:
+        enabled: true
+
+receivers:
+  loadgen:
+  # Higher concurrency value translates to higher load
+   concurrency: 16
+processors:
+  transform/rewrite:  # Rewrite telemetry to increase cardinality
+    trace_statements:
+      - context: span
+        statements:
+          # The worst way to generate a random ID, but is the simplest in OTTL
+          # Only randomize trace ID such that span relationships are still maintained
+          - set(trace_id.string, Substring(MD5(UUID()), 0, 32))
+
+exporters:
+  debug:
+
+service:
+  extensions:
+    - cgroupruntime
+  pipelines:
+    logs:
+      receivers: [loadgen]
+      processors: [transform/rewrite]
+      exporters: [debug]
+    metrics:
+      receivers: [loadgen]
+      processors: [transform/rewrite]
+      exporters: [debug]
+    traces:
+      receivers: [loadgen]
+      processors: [transform/rewrite]
+      exporters: [debug]
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: '0.0.0.0'
+                port: 8888
